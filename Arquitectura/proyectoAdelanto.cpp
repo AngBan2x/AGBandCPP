@@ -15,7 +15,7 @@ ofstream archivoSalida;
 void cache(int cache,int tbloque,int tconjunto);
 void cache_directa(int bloqCache, int tbloque);
 void cache_conjuntos(int bloqCache,int tbloque, int tconjunto);
-//void cache_asociativa(int bloqCache,int tbloque); //este se usara en el proyecto final
+void cache_asociativa(int bloqCache,int tbloque);
 
 const int memory_direction[] = {6, 214, 175, 214, 6, 84, 65, 174, 64, 105, 85, 215};
 const int memory_direction_size = sizeof(memory_direction) / sizeof(int);
@@ -67,6 +67,7 @@ void cache(int cache, int tbloque, int tconjunto) {
     // Llama a las funciones de caché específicas según el tipo de caché
     cache_directa(bloques, tbloque);
     cache_conjuntos(bloques, tbloque, tconjunto);
+    cache_asociativa(bloques, tbloque);
 }
 
 void cache_directa(int bloqCache, int tbloque) {
@@ -192,4 +193,74 @@ void cache_conjuntos(int bloqCache, int tbloque, int tconjunto) {
                   << setw(12) << ' '
                   << setw(12) << "CONJUNTOS:"
                   << setw(12) << conjuntos << '\n';
+}
+
+void cache_asociativa(int bloqCache, int tbloque)
+{
+    int indice;
+    int instruccion;
+    int despBloque = log2(tbloque);
+    int etiqueta;
+    int error = 0;
+    vector<int> cola;
+
+    archivoSalida << "\n--------------------------------------------------" << endl;
+    archivoSalida << "                 CACHE POR ASOCIATIVA";
+    archivoSalida << "\n--------------------------------------------------" << endl;
+
+    //printf("%-12s%-12s%-12s\n", "DIRECCION", "ETIQUETA", "RESULTADO");
+
+    archivoSalida << setfill('-');
+    archivoSalida << setw(12) << "DIRECCION"
+                  << setw(12) << "ETIQUETA"
+                  << setw(12) << "RESULTADO" << '\n';
+    archivoSalida << setfill(' ');
+
+    // Iterar sobre las instrucciones de memoria
+    for (int i = 0; i < memory_direction_size; i++)
+    {
+        instruccion = memory_direction[i];
+        etiqueta = instruccion >> despBloque;
+        auto it = find(cola.begin(), cola.end(), etiqueta);
+        int tipoResultado = 0;
+
+        // Verificar si hay un error en la caché asociativa
+        if (it != cola.end())
+        {
+            cola.erase(it);
+            cola.insert(cola.begin(), etiqueta);
+        }
+        else if (cola.size() < static_cast<size_t>(bloqCache))
+        {
+            cola.push_back(etiqueta);
+            error++;
+            tipoResultado = 1;
+        }
+        else
+        {
+            cola.pop_back();
+            cola.insert(cola.begin(), etiqueta);
+            error++;
+            tipoResultado = 2;
+        }
+
+        // Mostrar la tabla de resultados
+        //printf("%-12d%-12d%-12s\n", instruccion, etiqueta, (tipoResultado == 0) ? "Acierto" : ((tipoResultado == 1) ? "Error con espacio" : "Error sin espacio"));
+
+        archivoSalida << setw(12) << instruccion;
+        archivoSalida << setw(12) << etiqueta;
+        archivoSalida << setw(12) << (tipoResultado == 0) ? "Acierto" : ((tipoResultado == 1) ? "Error con espacio" : "Error sin espacio");
+        archivoSalida << endl;
+    }
+
+    // Mostrar estadísticas de fallos
+    /*
+    printf("\n%-12s%-12s%-12s%-12d\n", "", "", "FALLOS:", error);
+    printf("%-12s%-12s%-12s%-12lu\n", "", "", "TAMANIO:", cola.size());
+    */
+
+    archivoSalida << setw(24) << "";
+    archivoSalida << setw(12) << "FALLOS:" << setw(12) << error << endl;
+    archivoSalida << setw(24) << "";
+    archivoSalida << setw(12) << "TAMANO:" << setw(12) << cola.size() << endl;
 }
